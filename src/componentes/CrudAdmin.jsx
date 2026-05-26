@@ -74,7 +74,7 @@ export const CrudAdmin = () => {
         <Navbar onSelect={setSeccion} seccionActiva={seccion} />
       </div>
 
-      <div className="overflow-y-auto p-6 bg-gray-50 rounded-xl m-4">
+      <div className="overflow-y-auto p-6 bg-white">
         {renderContenido()}
         <Footer />
       </div>
