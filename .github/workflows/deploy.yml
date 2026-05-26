@@ -8,7 +8,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: citt-frontend
-  EC2_HOST: 3.93.7.119
+  EC2_HOST: 3.87.195.69
 
 jobs:
   build-and-deploy:
@@ -31,14 +31,14 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build imagen Docker
+      - name: Build imagen Docker (multi-stage, nginx proxy maneja routing a backends)
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
-            --build-arg VITE_API_VENTAS_URL=${{ secrets.VITE_API_VENTAS_URL }} \
-            --build-arg VITE_API_DESPACHOS_URL=${{ secrets.VITE_API_DESPACHOS_URL }} \
+            --build-arg VITE_API_VENTAS_URL="" \
+            --build-arg VITE_API_DESPACHOS_URL="" \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
 
@@ -50,7 +50,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      - name: Deploy en EC2 Frontend
+      - name: Deploy en EC2 Frontend via docker-compose
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ env.EC2_HOST }}
@@ -59,13 +59,10 @@ jobs:
           script: |
             aws ecr get-login-password --region us-east-1 | \
               docker login --username AWS --password-stdin \
-              996829654582.dkr.ecr.us-east-1.amazonaws.com
-            docker pull 996829654582.dkr.ecr.us-east-1.amazonaws.com/citt-frontend:latest
-            docker stop citt-frontend 2>/dev/null || true
-            docker rm   citt-frontend 2>/dev/null || true
-            docker run -d \
-              --name citt-frontend \
-              --restart unless-stopped \
-              -p 80:80 \
-              996829654582.dkr.ecr.us-east-1.amazonaws.com/citt-frontend:latest
-            docker ps | grep citt-frontend
+              332579324003.dkr.ecr.us-east-1.amazonaws.com
+
+            docker pull 332579324003.dkr.ecr.us-east-1.amazonaws.com/citt-frontend:latest
+
+            cd /home/ec2-user/app
+            docker-compose up -d --force-recreate frontend
+            docker-compose ps
