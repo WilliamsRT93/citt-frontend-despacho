@@ -5,19 +5,22 @@ import { FormCierreDespacho } from "./FormCierreDespacho";
 
 export const TableDespachos = () => {
   const [despachos, setDespachos] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const despacho = async () => {
-    await axios
-      .get(`${import.meta.env.VITE_API_DESPACHOS_URL}/api/v1/despachos`, {
-        headers:{
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-        }
-      })
-      .then((response) => {
-        console.log(response.data);
-        setDespachos(response.data);
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_DESPACHOS_URL}/api/v1/despachos`, {
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
       });
+      setDespachos(response.data);
+    } catch (e) {
+      setError("No se pudo conectar con el servidor de despachos. Intente nuevamente.");
+    } finally {
+      setLoading(false);
+    }
   };
   // Llamada a la función para obtener los datos cuando el componente se monta
   useEffect(() => {
@@ -34,6 +37,8 @@ export const TableDespachos = () => {
 
   return (
     <>
+      {loading && <p className="text-center text-gray-500 py-4">Cargando órdenes de despacho...</p>}
+      {error && <p className="text-center text-red-500 py-4">{error}</p>}
       <section className="grid text-center grid-cols-12 mb-8">
         <div className="col-span-12 flex justify-center">
           <div className="col-span-10 p-2 bg-white border border-gray-200 rounded-lg shadow dark:bg-white h-full overflow-hidden">
