@@ -1,4 +1,4 @@
-name: CI/CD Frontend - Innovatech Chile
+name: CI/CD Frontend - ITPCARGO CITT
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: innovatech-frontend
+  ECR_REPOSITORY: citt-frontend
   ECR_REGISTRY: 332579324003.dkr.ecr.us-east-1.amazonaws.com
   EC2_INSTANCE_ID: i-0c1f82ee5e125b5eb
 
@@ -58,11 +58,11 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
               "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 332579324003.dkr.ecr.us-east-1.amazonaws.com",
-              "docker pull 332579324003.dkr.ecr.us-east-1.amazonaws.com/innovatech-frontend:latest",
-              "docker stop innovatech-frontend 2>/dev/null || true",
-              "docker rm innovatech-frontend 2>/dev/null || true",
-              "docker run -d --name innovatech-frontend --restart unless-stopped -p 80:80 332579324003.dkr.ecr.us-east-1.amazonaws.com/innovatech-frontend:latest",
-              "docker ps | grep innovatech-frontend"
+              "docker pull 332579324003.dkr.ecr.us-east-1.amazonaws.com/citt-frontend:latest",
+              "docker stop citt-frontend 2>/dev/null || true",
+              "docker rm citt-frontend 2>/dev/null || true",
+              "docker run -d --name citt-frontend --restart unless-stopped -p 80:80 332579324003.dkr.ecr.us-east-1.amazonaws.com/citt-frontend:latest",
+              "docker ps | grep citt-frontend"
             ]' \
             --query 'Command.CommandId' --output text)
           echo "SSM Command ID: $COMMAND_ID"
