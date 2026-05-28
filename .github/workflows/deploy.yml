@@ -59,6 +59,8 @@ jobs:
             --parameters 'commands=[
               "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 332579324003.dkr.ecr.us-east-1.amazonaws.com",
               "docker pull 332579324003.dkr.ecr.us-east-1.amazonaws.com/citt-frontend:latest",
+              "docker stop innovatech-frontend 2>/dev/null || true",
+              "docker rm innovatech-frontend 2>/dev/null || true",
               "docker stop citt-frontend 2>/dev/null || true",
               "docker rm citt-frontend 2>/dev/null || true",
               "docker run -d --name citt-frontend --restart unless-stopped -p 80:80 332579324003.dkr.ecr.us-east-1.amazonaws.com/citt-frontend:latest",
