@@ -1,4 +1,4 @@
-name: CI/CD Frontend - CITT Innovatech
+name: CI/CD Frontend - Innovatech Chile
 
 on:
   push:
@@ -7,12 +7,13 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: citt-frontend
-  EC2_HOST: 3.87.195.69
+  ECR_REPOSITORY: innovatech-frontend
+  ECR_REGISTRY: 332579324003.dkr.ecr.us-east-1.amazonaws.com
+  EC2_INSTANCE_ID: i-0c1f82ee5e125b5eb
 
 jobs:
   build-and-deploy:
-    name: Build → Push ECR → Deploy EC2
+    name: Build → Push ECR → Deploy EC2 via SSM
     runs-on: ubuntu-latest
 
     steps:
@@ -31,7 +32,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build imagen Docker (multi-stage, nginx proxy maneja routing a backends)
+      - name: Build imagen Docker (multi-stage nginx, usuario no root)
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
@@ -50,19 +51,28 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      - name: Deploy en EC2 Frontend via docker-compose
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ env.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            aws ecr get-login-password --region us-east-1 | \
-              docker login --username AWS --password-stdin \
-              332579324003.dkr.ecr.us-east-1.amazonaws.com
-
-            docker pull 332579324003.dkr.ecr.us-east-1.amazonaws.com/citt-frontend:latest
-
-            cd /home/ec2-user/app
-            docker-compose up -d --force-recreate frontend
-            docker-compose ps
+      - name: Deploy en EC2 via AWS SSM (sin SSH)
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 332579324003.dkr.ecr.us-east-1.amazonaws.com",
+              "docker pull 332579324003.dkr.ecr.us-east-1.amazonaws.com/innovatech-frontend:latest",
+              "docker stop innovatech-frontend 2>/dev/null || true",
+              "docker rm innovatech-frontend 2>/dev/null || true",
+              "docker run -d --name innovatech-frontend --restart unless-stopped -p 80:80 332579324003.dkr.ecr.us-east-1.amazonaws.com/innovatech-frontend:latest",
+              "docker ps | grep innovatech-frontend"
+            ]' \
+            --query 'Command.CommandId' --output text)
+          echo "SSM Command ID: $COMMAND_ID"
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$EC2_INSTANCE_ID"
+          STATUS=$(aws ssm list-command-invocations \
+            --command-id "$COMMAND_ID" \
+            --details \
+            --query 'CommandInvocations[0].Status' \
+            --output text)
+          echo "Deploy status: $STATUS"
+          if [ "$STATUS" != "Success" ]; then exit 1; fi
