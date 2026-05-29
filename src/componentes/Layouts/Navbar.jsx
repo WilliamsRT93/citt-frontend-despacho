@@ -14,6 +14,7 @@ function Navbar({ onSelect, seccionActiva }) {
           <li key={id}>
             <button
               onClick={() => onSelect(id)}
+              style={{ fontFamily: "'Orbitron', sans-serif" }}
               className={`block w-full text-left font-bold py-2 px-3 rounded transition-colors duration-200 ${
                 seccionActiva === id
                   ? "bg-teal-800"
